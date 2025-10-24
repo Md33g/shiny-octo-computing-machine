@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>اكاديميه زينه</title>
+<style>
+  body{margin:0;font-family:Tajawal,sans-serif;background:#f3f4f6;color:#b91c1c;}
+  .page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px;}
+  .sheet{width:min(920px,96%);background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:20px;}
+  .top-controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;}
+  .top-controls input{padding:8px;border-radius:8px;border:1px solid #e6e6e6;width:220px;}
+  .top-controls button{background:#b91c1c;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;}
+
+  #capture{background:#fff;padding:18px;border-radius:8px;color:#b91c1c;}
+  .logo-name-row{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:6px;}
+  .academy-name{font-weight:700;font-size:20px;color:#b91c1c;}
+  .logo{width:64px;height:64px;border-radius:10px;object-fit:cover;}
+
+  h1.title{font-size:22px;margin:8px 0 14px;text-align:center;font-weight:700;}
+
+  table{width:100%;border-collapse:collapse;background:transparent;}
+  th,td{border:1px solid #e6e6e6;padding:10px;font-size:15px;text-align:center;color:#b91c1c;}
+  thead th{background:#fff;font-weight:700;}
+  td[contenteditable="true"]:focus{outline:2px solid rgba(185,28,28,0.12);}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px;}
+  .toolbar button{background:#b91c1c;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;}
+
+  footer{margin-top:14px;text-align:center;color:#6b7280;font-size:13px;}
+</style>
+<link id="faviconLink" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Ccircle cx='32' cy='32' r='32'/%3E%3C/clipPath%3E%3C/defs%3E%3Cimage clip-path='url(%23c)' href='https://raw.githubusercontent.com/Md33g/center-zeina-academy/refs/heads/main/Gemini_Generated_Image_7i5so47i5so47i5s.png' width='64' height='64'/%3E%3C/svg%3E">
+</head>
+<body>
+<div class="page">
+  <div class="sheet">
+    <div class="top-controls">
+      <input id="tableTitleInput" placeholder="اكتب عنوان الجدول" />
+      <button id="saveBtn">حفظ يدوي</button>
+      <button id="loadBtn">تحميل ملف</button>
+      <button id="clearBtn">مسح البيانات</button>
+    </div>
+
+    <div id="capture" aria-label="منطقة الجدول للطباعة">
+      <div class="logo-name-row">
+        <img class="logo" src="https://raw.githubusercontent.com/Md33g/center-zeina-academy/refs/heads/main/Gemini_Generated_Image_7i5so47i5so47i5s.png" alt="logo">
+        <span class="academy-name">أكاديمية سنتر زينة</span>
+      </div>
+
+      <h1 class="title" id="tableTitle">عنوان الجدول</h1>
+
+      <div style="overflow:auto">
+        <table id="mainTable">
+          <thead>
+            <tr id="headerRow">
+              <th contenteditable="true">الاسم</th>
+              <th contenteditable="true">التاريخ</th>
+              <th contenteditable="true">الوقت</th>
+              <th contenteditable="true">الساعات</th>
+              <th contenteditable="true">ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button id="addRow">➕ صف</button>
+      <button id="deleteRow">➖ صف</button>
+      <button id="addCol">➕ عمود</button>
+      <button id="deleteCol">➖ عمود</button>
+      <button id="exportPng">📸 تصدير PNG</button>
+    </div>
+
+    <footer>© 2025 أكاديمية سنتر زينة</footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+const table=document.getElementById('mainTable');
+const tbody=document.getElementById('tbody');
+const headerRow=document.getElementById('headerRow');
+const tableTitleInput=document.getElementById('tableTitleInput');
+const tableTitle=document.getElementById('tableTitle');
+const addRowBtn=document.getElementById('addRow');
+const deleteRowBtn=document.getElementById('deleteRow');
+const addColBtn=document.getElementById('addCol');
+const deleteColBtn=document.getElementById('deleteCol');
+const exportBtn=document.getElementById('exportPng');
+const saveBtn=document.getElementById('saveBtn');
+const loadBtn=document.getElementById('loadBtn');
+const clearBtn=document.getElementById('clearBtn');
+const STORAGE_KEY='center-zeina-table-v1';
+
+function initEmpty(){
+  headerRow.innerHTML='';
+  ['الاسم','التاريخ','الوقت','الساعات','ملاحظات'].forEach(h=>{
+    const th=document.createElement('th'); th.contentEditable='true'; th.textContent=h; headerRow.appendChild(th);
+  });
+  tbody.innerHTML=''; addRow();
+}
+
+function getHeaderCount(){return headerRow.querySelectorAll('th').length;}
+function addRow(){const count=getHeaderCount(); const tr=document.createElement('tr'); for(let i=0;i<count;i++){ const td=document.createElement('td'); td.contentEditable='true'; td.textContent=''; tr.appendChild(td);} tbody.appendChild(tr); scheduleSave();}
+function deleteRow(){const rows=tbody.querySelectorAll('tr'); if(rows.length===0) return; rows[rows.length-1].remove(); scheduleSave();}
+function addColumn(){const th=document.createElement('th'); th.contentEditable='true'; th.textContent='عمود جديد'; headerRow.appendChild(th); tbody.querySelectorAll('tr').forEach(r=>{const td=document.createElement('td'); td.contentEditable='true'; td.textContent=''; r.appendChild(td);}); scheduleSave();}
+function deleteColumn(){const ths=headerRow.querySelectorAll('th'); if(ths.length<=1) return; ths[ths.length-1].remove(); tbody.querySelectorAll('tr').forEach(r=>{ const tds=r.querySelectorAll('td'); if(tds.length>0) tds[tds.length-1].remove();}); scheduleSave();}
+function exportToPNG(){const capture=document.getElementById('capture'); const prevBg=capture.style.backgroundColor; capture.style.backgroundColor='#ffffff'; html2canvas(capture,{useCORS:true,backgroundColor:'#ffffff',scale:2}).then(canvas=>{const a=document.createElement('a'); a.download=(tableTitle.textContent||'table')+'.png'; a.href=canvas.toDataURL('image/png'); a.click(); capture.style.backgroundColor=prevBg;}).catch(err=>{console.error(err); capture.style.backgroundColor=prevBg; alert('حدث خطأ أثناء التصدير');});}
+function downloadJSON(){const data={title:tableTitle.textContent,headers:[],rows:[]}; headerRow.querySelectorAll('th').forEach(th=>data.headers.push(th.textContent)); tbody.querySelectorAll('tr').forEach(tr=>{const row=[]; tr.querySelectorAll('td').forEach(td=>row.push(td.textContent)); data.rows.push(row);}); const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='table-data.json'; a.click();}
+function loadFromFile(){const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=e=>{const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{try{ const data=JSON.parse(reader.result); if(Array.isArray(data.headers)&&data.headers.length){ headerRow.innerHTML=''; data.headers.forEach(h=>{ const th=document.createElement('th'); th.contentEditable=true; th.textContent=h; headerRow.appendChild(th);});} tbody.innerHTML=''; if(Array.isArray(data.rows)) data.rows.forEach(r=>{ const tr=document.createElement('tr'); (data.headers||[]).forEach((_,i)=>{const td=document.createElement('td'); td.contentEditable=true; td.textContent=r[i]||''; tr.appendChild(td);}); tbody.appendChild(tr);}); tableTitle.textContent=data.title||'عنوان الجدول'; tableTitleInput.value=data.title||''; scheduleSave();}catch(err){alert('ملف غير صالح');}}; reader.readAsText(file);}; inp.click();}
+function clearData(){if(confirm('هل تريد مسح كل البيانات؟')){initEmpty(); saveToLocal();}}
+let saveTimer=null; function scheduleSave(){if(saveTimer) clearTimeout(saveTimer); saveTimer=setTimeout(()=>{saveToLocal();},700);}
+function saveToLocal(){const data={title:tableTitle.textContent,headers:[],rows:[]}; headerRow.querySelectorAll('th').forEach(th=>data.headers.push(th.textContent)); tbody.querySelectorAll('tr').forEach(tr=>{const row=[]; tr.querySelectorAll('td').forEach(td=>row.push(td.textContent)); data.rows.push(row);}); try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(e){console.error('فشل الحفظ',e);}}
+function loadFromStorage(){const raw=localStorage.getItem(STORAGE_KEY); if(!raw) return initEmpty(); try{const data=JSON.parse(raw); if(Array.isArray(data.headers)&&data.headers.length){ headerRow.innerHTML=''; data.headers.forEach(h=>{ const th=document.createElement('th'); th.contentEditable=true; th.textContent=h; headerRow.appendChild(th);});} tbody.innerHTML=''; if(Array.isArray(data.rows)) data.rows.forEach(r=>{ const tr=document.createElement('tr'); (data.headers||[]).forEach((_,i)=>{ const td=document.createElement('td'); td.contentEditable=true; td.textContent=r[i]||''; tr.appendChild(td);}); tbody.appendChild(tr);}); tableTitle.textContent=data.title||'عنوان الجدول'; tableTitleInput.value=data.title||'';}catch(e){console.error(e); initEmpty();}}
+addRowBtn.addEventListener('click',addRow);
+deleteRowBtn.addEventListener('click',deleteRow);
+addColBtn.addEventListener('click',addColumn);
+deleteColBtn.addEventListener('click',deleteColumn);
+exportBtn.addEventListener('click',exportToPNG);
+saveBtn.addEventListener('click',downloadJSON);
+loadBtn.addEventListener('click',loadFromFile);
+clearBtn.addEventListener('click',clearData);
+tableTitleInput.addEventListener('input',()=>{table
+              <th contenteditable="true">الوقت</th>
+              <th contenteditable="true">الساعات</th>
+              <th contenteditable="true">ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button id="addRow">➕ صف</button>
+      <button id="deleteRow">➖ صف</button>
+      <button id="addCol">➕ عمود</button>
+      <button id="deleteCol">➖ عمود</button>
+      <button id="exportPng">📸 تصدير PNG</button>
+    </div>
+
+    <footer>© 2025 أكاديمية سنتر زينة</footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+const addRowBtn=document.getElementById('addRow');
+const deleteRowBtn=document.getElementById('deleteRow');
+const addColBtn=document.getElementById('addCol');
+const deleteColBtn=document.getElementById('deleteCol');
+const exportBtn=document.getElementById('exportPng');
+const saveBtn=document.getElementById('saveBtn');
+const loadBtn=document.getElementById('loadBtn');
+const clearBtn=document.getElementById('clearBtn');
+const tableTitleInput=document.getElementById('tableTitleInput');
+const tableTitle=document.getElementById('tableTitle');
+const table=document.getElementById('mainTable');
+const tbody=document.getElementById('tbody');
+const headerRow=document.getElementById('headerRow');
+const STORAGE_KEY='center-zeina-table-v1';
+
+function initEmpty(){headerRow.innerHTML='';['الاسم','التاريخ','الوقت','الساعات','ملاحظات'].forEach(h=>{const th=document.createElement('th'); th.contentEditable='true'; th.textContent=h; headerRow.appendChild(th);}); tbody.innerHTML=''; addRow();}
+function getHeaderCount(){return headerRow.querySelectorAll('th').length;}
+function addRow(){const count=getHeaderCount(); const tr=document.createElement('tr'); for(let i=0;i<count;i++){ const td=document.createElement('td'); td.contentEditable='true'; td.textContent=''; tr.appendChild(td);} tbody.appendChild(tr); scheduleSave();}
+function deleteRow(){const rows=tbody.querySelectorAll('tr'); if(rows.length===0) return; rows[rows.length-1].remove(); scheduleSave();}
+function addColumn(){const th=document.createElement('th'); th.contentEditable='true'; th.textContent='عمود جديد'; headerRow.appendChild(th); tbody.querySelectorAll('tr').forEach(r=>{const td=document.createElement('td'); td.contentEditable='true'; td.textContent=''; r.appendChild(td);}); scheduleSave();}
+function deleteColumn(){const ths=headerRow.querySelectorAll('th'); if(ths.length<=1) return; ths[ths.length-1].remove(); tbody.querySelectorAll('tr').forEach(r=>{ const tds=r.querySelectorAll('td'); if(tds.length>0) tds[tds.length-1].remove();}); scheduleSave();}
+function exportToPNG(){const capture=document.getElementById('capture'); capture.style.backgroundColor='#ffffff'; html2canvas(capture,{useCORS:true,backgroundColor:'#ffffff',scale:2}).then(canvas=>{const a=document.createElement('a'); a.download=(tableTitle.textContent||'table')+'.png'; a.href=canvas.toDataURL('image/png'); a.click();});}
+function downloadJSON(){const data={title:tableTitle.textContent,headers:[],rows:[]}; headerRow.querySelectorAll('th').forEach(th=>data.headers.push(th.textContent)); tbody.querySelectorAll('tr').forEach(tr=>{const row=[]; tr.querySelectorAll('td').forEach(td=>row.push(td.textContent)); data.rows.push(row);}); const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='table-data.json'; a.click();}
+function loadFromFile(){const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=e=>{const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{try{ const data=JSON.parse(reader.result); if(Array.isArray(data.headers)&&data.headers.length){ headerRow.innerHTML=''; data.headers.forEach(h=>{ const th=document.createElement('th'); th.contentEditable=true; th.textContent=h; headerRow.appendChild(th);});} tbody.innerHTML=''; if(Array.isArray(data.rows)) data.rows.forEach(r=>{ const tr=document.createElement('tr'); (data.headers||[]).forEach((_,i)=>{const td=document.createElement('td'); td.contentEditable=true; td.textContent=r[i]||''; tr.appendChild(td);}); tbody.appendChild(tr);}); tableTitle.textContent=data.title||'عنوان الجدول'; tableTitleInput.value=data.title||'';}catch(err){alert('ملف غير صالح');}}; reader.readAsText(file);}; inp.click();}
+function clearData(){if(confirm('هل تريد مسح كل البيانات؟')){initEmpty(); saveToLocal();}}
+let saveTimer=null; function scheduleSave(){if(saveTimer) clearTimeout(saveTimer); saveTimer=setTimeout(()=>{saveToLocal();},700);}
+function saveToLocal(){const data={title:tableTitle.textContent,headers:[],rows:[]}; headerRow.querySelectorAll('th').forEach(th=>data.headers.push(th.textContent)); tbody.querySelectorAll('tr').forEach(tr=>{const row=[]; tr.querySelectorAll('td').forEach(td=>row.push(td.textContent)); data.rows.push(row);}); try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(e){console.error('فشل الحفظ',e);}}
+function loadFromStorage(){const raw=localStorage.getItem(STORAGE_KEY); if(!raw) return initEmpty(); try{const data=JSON.parse(raw); if(Array.isArray(data.headers)&&data.headers.length){ headerRow.innerHTML=''; data.headers.forEach(h=>{ const th=document.createElement('th'); th.contentEditable=true; th.textContent=h; headerRow.appendChild(th);});} tbody.innerHTML=''; if(Array.isArray(data.rows)) data.rows.forEach(r=>{ const tr=document.createElement('tr'); (data.headers||[]).forEach((_,i)=>{ const td=document.createElement('td'); td.contentEditable=true; td.textContent=r[i]||''; tr.appendChild(td);}); tbody.appendChild(tr);}); tableTitle.textContent=data.title||'عنوان الجدول'; tableTitleInput.value=data.title||'';}catch(e){console.error(e); initEmpty();}
+}
+addRowBtn.addEventListener('click',addRow);
+deleteRowBtn.addEventListener('click',deleteRow);
+addColBtn.addEventListener('click',addColumn);
+deleteColBtn.addEventListener('click',deleteColumn);
+exportBtn.addEventListener('click',exportToPNG);
+saveBtn.addEventListener('click',downloadJSON);
+loadBtn.addEventListener('click',loadFromFile);
+clearBtn.addEventListener('click',clearData);
+tableTitleInput.addEventListener('input',()=>{tableTitle.textContent=tableTitleInput.value||'عنوان الجدول'; scheduleSave();});
+window.addEventListener('load',loadFromStorage);
+</script>
+</body>
+</html>
